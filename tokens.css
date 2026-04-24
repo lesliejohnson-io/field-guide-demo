@@ -1,0 +1,153 @@
+/* =========================================================
+   Palette 7 — Color Tokens
+   Source: Refactoring UI, Palette 7
+   Scale: 50 (lightest) → 900 (darkest), 10 steps per ramp
+   ========================================================= */
+
+:root {
+  /* -------- Primary · Cyan -------- */
+  --cyan-50:  #e0fcff;
+  --cyan-100: #bef8fd;
+  --cyan-200: #87eaf2;
+  --cyan-300: #54d1db;
+  --cyan-400: #38bec9;
+  --cyan-500: #2cb1bc;
+  --cyan-600: #14919b;
+  --cyan-700: #0e7c86;
+  --cyan-800: #0a6c74;
+  --cyan-900: #044e54;
+
+  /* -------- Neutrals · Warm Gray -------- */
+  --neutral-50:  #faf9f7;
+  --neutral-100: #e8e6e1;
+  --neutral-200: #d3cec4;
+  --neutral-300: #b8b2a7;
+  --neutral-400: #a39e93;
+  --neutral-500: #857f72;
+  --neutral-600: #625d52;
+  --neutral-700: #504a40;
+  --neutral-800: #423d33;
+  --neutral-900: #27241d;
+
+  /* -------- Secondary · Teal -------- */
+  --teal-50:  #effcf6;
+  --teal-100: #c6f7e2;
+  --teal-200: #8eedc7;
+  --teal-300: #65d6ad;
+  --teal-400: #3ebd93;
+  --teal-500: #27ab83;
+  --teal-600: #199473;
+  --teal-700: #147d64;
+  --teal-800: #0c6b58;
+  --teal-900: #014d40;
+
+  /* -------- Supporting · Blue -------- */
+  --blue-50:  #dceefb;
+  --blue-100: #b6e0fe;
+  --blue-200: #84c5f4;
+  --blue-300: #62b0e8;
+  --blue-400: #4098d7;
+  --blue-500: #2680c2;
+  --blue-600: #186faf;
+  --blue-700: #0f609b;
+  --blue-800: #0a558c;
+  --blue-900: #003e6b;
+
+  /* -------- Supporting · Red -------- */
+  --red-50:  #ffeeee;
+  --red-100: #facdcd;
+  --red-200: #f29b9b;
+  --red-300: #e66a6a;
+  --red-400: #d64545;
+  --red-500: #ba2525;
+  --red-600: #a61b1b;
+  --red-700: #911111;
+  --red-800: #780a0a;
+  --red-900: #610404;
+
+  /* -------- Supporting · Yellow -------- */
+  --yellow-50:  #fffaeb;
+  --yellow-100: #fcefc7;
+  --yellow-200: #f8e3a3;
+  --yellow-300: #f9da8b;
+  --yellow-400: #f7d070;
+  --yellow-500: #e9b949;
+  --yellow-600: #c99a2e;
+  --yellow-700: #a27c1a;
+  --yellow-800: #7c5e10;
+  --yellow-900: #513c06;
+
+  /* =========================================================
+     Semantic tokens — reference the ramps above.
+     Use these in components, not the raw scale.
+     ========================================================= */
+
+  /* Brand */
+  --brand:              var(--cyan-700);
+  --brand-hover:        var(--cyan-800);
+  --brand-active:       var(--cyan-900);
+  --brand-subtle:       var(--cyan-50);
+  --brand-subtle-border:var(--cyan-200);
+  --on-brand:           #ffffff;
+
+  /* Surface & background */
+  --surface-app:        var(--neutral-50);
+  --surface-card:       #ffffff;
+  --surface-raised:     #ffffff;
+  --surface-sunken:     var(--neutral-100);
+  --surface-inverse:    var(--neutral-900);
+
+  /* Text */
+  --text-primary:       var(--neutral-900);
+  --text-secondary:     var(--neutral-700);
+  --text-muted:         var(--neutral-500);
+  --text-disabled:      var(--neutral-400);
+  --text-inverse:       var(--neutral-50);
+  --text-link:          var(--blue-700);
+  --text-link-hover:    var(--blue-800);
+  --text-on-brand:      #ffffff;
+
+  /* Border */
+  --border-subtle:      var(--neutral-100);
+  --border-default:     var(--neutral-200);
+  --border-strong:      var(--neutral-400);
+  --border-focus:       var(--cyan-600);
+
+  /* Status — Success (Teal) */
+  --success:            var(--teal-700);
+  --success-bg:         var(--teal-50);
+  --success-border:     var(--teal-200);
+  --success-text:       var(--teal-900);
+
+  /* Status — Info (Blue) */
+  --info:               var(--blue-700);
+  --info-bg:            var(--blue-50);
+  --info-border:        var(--blue-200);
+  --info-text:          var(--blue-900);
+
+  /* Status — Warning (Yellow) */
+  --warning:            var(--yellow-600);
+  --warning-bg:         var(--yellow-50);
+  --warning-border:     var(--yellow-200);
+  --warning-text:       var(--yellow-900);
+
+  /* Status — Danger (Red) */
+  --danger:             var(--red-600);
+  --danger-hover:       var(--red-700);
+  --danger-bg:          var(--red-50);
+  --danger-border:      var(--red-200);
+  --danger-text:        var(--red-900);
+
+  /* Focus ring */
+  --focus-ring:         0 0 0 3px rgb(20 145 155 / 0.32);
+
+  /* Radii, spacing, shadow — minimal set so tokens feel complete */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgb(39 36 29 / 0.06);
+  --shadow-md: 0 4px 12px rgb(39 36 29 / 0.08), 0 1px 2px rgb(39 36 29 / 0.04);
+  --shadow-lg: 0 12px 32px rgb(39 36 29 / 0.10), 0 2px 6px rgb(39 36 29 / 0.05);
+}
