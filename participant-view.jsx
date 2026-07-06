@@ -1,6 +1,8 @@
 // Participant tablet — active survey screen
 // Depends on: React, survey-data.js (FG_QUESTIONS, FG_LIKERT, FG_VOICES)
 
+const { useRef, useEffect } = React;
+
 function Waveform({ active, dark }) {
   // 18 bars, animated with staggered delays. Pauses when not active.
   const bars = Array.from({ length: 18 });
@@ -119,6 +121,29 @@ function ParticipantView({ dark, state, actions }) {
   const selected = answers[q.id];
   const fatigueActive = fatigueScore > 0.6;
 
+  // Real voice audio, when a recording exists for this question + persona.
+  // Falls back to silent (waveform-only) playback if the file is missing.
+  const audioRef = useRef(null);
+  const audioSrc = `audio/${q.id}-${voiceId}.mp3`;
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.load();
+    if (speaking && soundOn) audio.play().catch(() => {});
+  }, [q.id, voiceId]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (speaking && soundOn) {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, [speaking, soundOn]);
+
   const bg = dark ? '#0d0c0a' : 'var(--neutral-50)';
   const fg = dark ? 'rgba(255,255,255,0.92)' : 'var(--text-primary)';
   const mutedFg = dark ? 'rgba(255,255,255,0.55)' : 'var(--text-muted)';
@@ -217,6 +242,8 @@ function ParticipantView({ dark, state, actions }) {
           }} />
         </div>
       </div>
+
+      <audio ref={audioRef} src={audioSrc} onEnded={actions.audioEnded} style={{ display: 'none' }} />
 
       {/* Main stage */}
       <div style={{

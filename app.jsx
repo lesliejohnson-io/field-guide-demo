@@ -157,6 +157,7 @@ function App() {
   }, [questionIndex, addLog]);
 
   const toggleSpeak = useCallback(() => setSpeaking(s => !s), []);
+  const audioEnded = useCallback(() => setSpeaking(false), []);
   const toggleSound = useCallback(() => {
     setSoundOn(prev => {
       const next = !prev;
@@ -224,7 +225,7 @@ function App() {
   };
   const actions = {
     answer, toggleSpeak, toggleSound, takeBreak, resumeFromBreak,
-    dismissHeadphonePrompt, dismissToast,
+    dismissHeadphonePrompt, dismissToast, audioEnded,
     ackTransition, wakeFromRest,
   };
   const researcherState = {
