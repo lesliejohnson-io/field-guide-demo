@@ -138,10 +138,13 @@ function ParticipantView({ dark, state, actions }) {
   const audioRef = useRef(null);
   const [audioPhase, setAudioPhase] = useState('question'); // 'question' | 'answerKey' | 'pick:<key>'
 
-  useEffect(() => { setAudioPhase('question'); }, [q.id]);
+  // Reset to the question whenever it changes, or when the reading level
+  // changes (the fatigue-adaptation flow rewrites the question to an easier
+  // tier mid-session, and each tier has its own recording).
+  useEffect(() => { setAudioPhase('question'); }, [q.id, tier]);
 
   const audioSrc = audioPhase === 'question'
-    ? `audio/${q.id}-${activeVoiceId}.mp3`
+    ? `audio/${q.id}-${activeVoiceId}-${tier}.mp3`
     : audioPhase === 'answerKey'
     ? `audio/answer-key-${activeVoiceId}.mp3`
     : `audio/answer-${audioPhase.slice(5)}-${activeVoiceId}.mp3`;
@@ -577,8 +580,9 @@ function TransitionOverlay({ dark, handoff, onAck }) {
         fontSize: 18, color: muted, lineHeight: 1.5,
         maxWidth: '42ch', marginBottom: 40,
       }}>
-        A dental hygienist will check your teeth. It takes about fifteen minutes.
-        Your answers so far are saved. We'll pick up the survey when you come back.
+        A dental hygienist will check your teeth and collect a saliva sample.
+        It takes about forty-five minutes. Your answers so far are saved.
+        We'll pick up the survey when you come back.
       </div>
 
       {/* Destination card */}

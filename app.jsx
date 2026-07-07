@@ -14,7 +14,7 @@ const HANDOFF = {
   wayfinding: 'Down the hall, on your right',
   who: 'Melissa',
   role: 'Dental hygienist',
-  duration: '~15 min',
+  duration: '~45 min',
   durationNote: 'Then back here',
 };
 const PARTICIPANT_NAME = 'Wade';
