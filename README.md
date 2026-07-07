@@ -1,4 +1,4 @@
-# Field Guide · V2 Prototype 🧪📋
+# Field Guide · V2 Prototype
 
 **Voice-first, fatigue-aware health survey system for rural clinical research.**
 
