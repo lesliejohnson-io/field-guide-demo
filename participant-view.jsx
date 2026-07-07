@@ -119,7 +119,6 @@ function ParticipantView({ dark, state, actions }) {
     questionIndex, answers, voiceId, speaking, tier,
     adaptiveToast, showBreak, showHeadphonePrompt,
     progress, fatigueScore, totalQuestions, soundOn = true,
-    manualAdvance,
   } = state;
   const isSpeaking = speaking && soundOn;
 
@@ -133,10 +132,9 @@ function ParticipantView({ dark, state, actions }) {
   const fatigueActive = fatigueScore > 0.6;
 
   // Real voice audio, when a recording exists for this question + persona.
-  // Reads the question, then the answer options, then stops. Tapping an
-  // answer (in manualAdvance mode) interrupts playback to preview that
-  // option instead. Falls back to silent (waveform-only) playback when a
-  // file is missing.
+  // Reads the question aloud; tapping an answer interrupts playback to
+  // preview that option instead, and only a deliberate "Next" tap advances.
+  // Falls back to silent (waveform-only) playback when a file is missing.
   const audioRef = useRef(null);
   const [audioPhase, setAudioPhase] = useState('question'); // 'question' | 'answerKey' | 'pick:<key>'
 
@@ -170,19 +168,24 @@ function ParticipantView({ dark, state, actions }) {
   const handleAudioEnded = () => {
     if (audioPhase === 'question') {
       setAudioPhase('answerKey');
-    } else if (audioPhase === 'answerKey') {
+    } else {
+      // 'answerKey' finished, or a 'pick:<key>' preview finished — either
+      // way nothing plays next, so mark speaking off (updates the
+      // Reading-aloud/Tap-to-replay label to match reality).
       actions.audioEnded();
     }
-    // 'pick:<key>' — just a one-shot preview, nothing to chain into.
   };
 
   const pickAnswer = (key) => {
-    if (manualAdvance) {
-      setAudioPhase('pick:' + key);
-      actions.selectAnswer(key);
-    } else {
-      actions.answer(key);
-    }
+    setAudioPhase('pick:' + key);
+    actions.selectAnswer(key);
+  };
+
+  // Replay always means "read the question again" — without this, it would
+  // resume whatever was last playing (e.g. a previously tapped answer).
+  const replayQuestion = () => {
+    if (!speaking) setAudioPhase('question');
+    actions.toggleSpeak();
   };
 
   // The very first "speaking" auto-starts on page load, before any user
@@ -313,7 +316,7 @@ function ParticipantView({ dark, state, actions }) {
           marginBottom: 28,
         }}>
           <button
-            onClick={actions.toggleSpeak}
+            onClick={replayQuestion}
             disabled={!soundOn}
             style={{
               display: 'flex', alignItems: 'center', gap: 14,
@@ -395,25 +398,23 @@ function ParticipantView({ dark, state, actions }) {
           fast={fatigueActive}
         />
 
-        {manualAdvance && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
-            <button
-              onClick={actions.advanceQuestion}
-              disabled={!selected}
-              style={{
-                font: 'inherit', fontSize: 15, fontWeight: 600,
-                padding: '13px 28px', borderRadius: 999,
-                background: selected ? (dark ? 'var(--cyan-500)' : 'var(--cyan-700)') : (dark ? 'rgba(255,255,255,0.06)' : 'var(--neutral-200)'),
-                border: 0,
-                color: selected ? '#fff' : mutedFg,
-                cursor: selected ? 'pointer' : 'not-allowed',
-                transition: 'background 0.2s',
-              }}
-            >
-              Next
-            </button>
-          </div>
-        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+          <button
+            onClick={actions.advanceQuestion}
+            disabled={!selected}
+            style={{
+              font: 'inherit', fontSize: 15, fontWeight: 600,
+              padding: '13px 28px', borderRadius: 999,
+              background: selected ? (dark ? 'var(--cyan-500)' : 'var(--cyan-700)') : (dark ? 'rgba(255,255,255,0.06)' : 'var(--neutral-200)'),
+              border: 0,
+              color: selected ? '#fff' : mutedFg,
+              cursor: selected ? 'pointer' : 'not-allowed',
+              transition: 'background 0.2s',
+            }}
+          >
+            Next
+          </button>
+        </div>
 
         {/* Footer hint */}
         <div style={{

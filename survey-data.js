@@ -49,9 +49,6 @@ window.FG_QUESTIONS = [
   },
 ];
 
-// Questions with real recorded audio + a manual "tap each answer, then Next" flow.
-window.FG_AUDIO_QUESTIONS = ['q034', 'q_01'];
-
 window.FG_LIKERT = [
   { key: 'sd', label: 'Strongly disagree' },
   { key: 'd',  label: 'Disagree' },

@@ -143,21 +143,8 @@ function App() {
   }, [tw.tierOverride]);
 
   // Actions
-  const answer = useCallback((key) => {
-    const q = FG_QUESTIONS[questionIndex];
-    const label = FG_LIKERT.find(l => l.key === key).label;
-    setAnswers(prev => ({ ...prev, [q.id]: key }));
-    setAnswerTimestamps(prev => [...prev, Date.now()]);
-    addLog({ kind: 'answer', text: `Q${q.number} answered · ${label}` });
-    // Advance after a short beat (but clamp to range)
-    setTimeout(() => {
-      setQuestionIndex(i => Math.min(i + 1, FG_QUESTIONS.length - 1));
-      setSpeaking(true);
-    }, 600);
-  }, [questionIndex, addLog]);
-
-  // Audio-enabled questions: tapping an option previews it aloud and just
-  // selects it — advancing is a deliberate "Next" tap instead of a timer.
+  // Tapping an option previews it aloud and just selects it — advancing is
+  // always a deliberate "Next" tap, never a timer.
   const selectAnswer = useCallback((key) => {
     const q = FG_QUESTIONS[questionIndex];
     setAnswers(prev => ({ ...prev, [q.id]: key }));
@@ -167,7 +154,8 @@ function App() {
     const q = FG_QUESTIONS[questionIndex];
     const key = answers[q.id];
     if (key) {
-      const label = FG_LIKERT.find(l => l.key === key).label;
+      const scale = q.type === 'freq4' ? FG_FREQUENCY : FG_LIKERT;
+      const label = scale.find(l => l.key === key).label;
       setAnswerTimestamps(prev => [...prev, Date.now()]);
       addLog({ kind: 'answer', text: `Q${q.number} answered · ${label}` });
     }
@@ -235,17 +223,15 @@ function App() {
   const sessionMin = Math.floor((Date.now() - sessionStart) / 60000);
   const progress = Math.min(1, (30 + questionIndex + Object.keys(answers).length) / totalQuestions);
 
-  const currentQuestion = FG_QUESTIONS[Math.min(questionIndex, FG_QUESTIONS.length - 1)];
   const participantState = {
     questionIndex: Math.min(questionIndex, FG_QUESTIONS.length - 1),
     answers, voiceId, speaking, tier,
     adaptiveToast, showBreak, showHeadphonePrompt,
     progress, fatigueScore, totalQuestions, soundOn,
     transition, restMode, participantName: PARTICIPANT_NAME,
-    manualAdvance: FG_AUDIO_QUESTIONS.includes(currentQuestion.id),
   };
   const actions = {
-    answer, selectAnswer, advanceQuestion,
+    selectAnswer, advanceQuestion,
     toggleSpeak, toggleSound, takeBreak, resumeFromBreak,
     dismissHeadphonePrompt, dismissToast, audioEnded,
     ackTransition, wakeFromRest,
