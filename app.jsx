@@ -14,7 +14,7 @@ const HANDOFF = {
   wayfinding: 'Down the hall, on your right',
   who: 'Melissa',
   role: 'Dental hygienist',
-  duration: '~15 min',
+  duration: '~45 min',
   durationNote: 'Then back here',
 };
 const PARTICIPANT_NAME = 'Wade';
@@ -143,20 +143,28 @@ function App() {
   }, [tw.tierOverride]);
 
   // Actions
-  const answer = useCallback((key) => {
+  // Tapping an option previews it aloud and just selects it — advancing is
+  // always a deliberate "Next" tap, never a timer.
+  const selectAnswer = useCallback((key) => {
     const q = FG_QUESTIONS[questionIndex];
-    const label = FG_LIKERT.find(l => l.key === key).label;
     setAnswers(prev => ({ ...prev, [q.id]: key }));
-    setAnswerTimestamps(prev => [...prev, Date.now()]);
-    addLog({ kind: 'answer', text: `Q${q.number} answered · ${label}` });
-    // Advance after a short beat (but clamp to range)
-    setTimeout(() => {
-      setQuestionIndex(i => Math.min(i + 1, FG_QUESTIONS.length - 1));
-      setSpeaking(true);
-    }, 600);
-  }, [questionIndex, addLog]);
+  }, [questionIndex]);
+
+  const advanceQuestion = useCallback(() => {
+    const q = FG_QUESTIONS[questionIndex];
+    const key = answers[q.id];
+    if (key) {
+      const scale = q.type === 'freq4' ? FG_FREQUENCY : FG_LIKERT;
+      const label = scale.find(l => l.key === key).label;
+      setAnswerTimestamps(prev => [...prev, Date.now()]);
+      addLog({ kind: 'answer', text: `Q${q.number} answered · ${label}` });
+    }
+    setQuestionIndex(i => Math.min(i + 1, FG_QUESTIONS.length - 1));
+    setSpeaking(true);
+  }, [questionIndex, answers, addLog]);
 
   const toggleSpeak = useCallback(() => setSpeaking(s => !s), []);
+  const audioEnded = useCallback(() => setSpeaking(false), []);
   const toggleSound = useCallback(() => {
     setSoundOn(prev => {
       const next = !prev;
@@ -223,8 +231,9 @@ function App() {
     transition, restMode, participantName: PARTICIPANT_NAME,
   };
   const actions = {
-    answer, toggleSpeak, toggleSound, takeBreak, resumeFromBreak,
-    dismissHeadphonePrompt, dismissToast,
+    selectAnswer, advanceQuestion,
+    toggleSpeak, toggleSound, takeBreak, resumeFromBreak,
+    dismissHeadphonePrompt, dismissToast, audioEnded,
     ackTransition, wakeFromRest,
   };
   const researcherState = {

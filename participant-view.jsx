@@ -1,6 +1,8 @@
 // Participant tablet — active survey screen
 // Depends on: React, survey-data.js (FG_QUESTIONS, FG_LIKERT, FG_VOICES)
 
+const { useRef, useState, useEffect } = React;
+
 function Waveform({ active, dark }) {
   // 18 bars, animated with staggered delays. Pauses when not active.
   const bars = Array.from({ length: 18 });
@@ -23,14 +25,20 @@ function Waveform({ active, dark }) {
   );
 }
 
-function LikertRow({ selected, onPick, answers, dark, tier, fast }) {
+function LikertRow({ options, selected, onPick, answers, dark, tier, fast }) {
   // tier controls size/spacing. "simple" → bigger buttons.
   const padY = tier === 'simple' ? 28 : tier === 'easy' ? 24 : 22;
+  const half = (options.length - 1) / 2;
+  const markerFor = (i) => {
+    if (i === 0) return '— —';
+    if (i === options.length - 1) return '+ +';
+    if (i === half) return '·';
+    return i < half ? '—' : '+';
+  };
   return (
     <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-      {FG_LIKERT.map((opt, i) => {
+      {options.map((opt, i) => {
         const isSel = selected === opt.key;
-        const emphasis = i === 0 || i === FG_LIKERT.length - 1;
         return (
           <button
             key={opt.key}
@@ -65,7 +73,7 @@ function LikertRow({ selected, onPick, answers, dark, tier, fast }) {
                 : (dark ? 'rgba(255,255,255,0.4)' : 'var(--text-muted)'),
               fontWeight: 600, marginBottom: 8,
             }}>
-              {emphasis ? (i === 0 ? '— —' : '+ +') : (i === 2 ? '·' : (i < 2 ? '—' : '+'))}
+              {markerFor(i)}
             </div>
             {opt.label}
           </button>
@@ -115,9 +123,82 @@ function ParticipantView({ dark, state, actions }) {
   const isSpeaking = speaking && soundOn;
 
   const q = FG_QUESTIONS[questionIndex];
-  const voice = FG_VOICES.find(v => v.id === voiceId);
+  const scaleOptions = q.type === 'freq4' ? FG_FREQUENCY : FG_LIKERT;
+  // Some questions (e.g. a teen participant's item) always play in a specific
+  // persona, regardless of the session's chosen adult voice.
+  const activeVoiceId = q.voiceOverride || voiceId;
+  const voice = FG_VOICES.find(v => v.id === activeVoiceId);
   const selected = answers[q.id];
   const fatigueActive = fatigueScore > 0.6;
+
+  // Real voice audio, when a recording exists for this question + persona.
+  // Reads the question aloud; tapping an answer interrupts playback to
+  // preview that option instead, and only a deliberate "Next" tap advances.
+  // Falls back to silent (waveform-only) playback when a file is missing.
+  const audioRef = useRef(null);
+  const [audioPhase, setAudioPhase] = useState('question'); // 'question' | 'answerKey' | 'pick:<key>'
+
+  // Reset to the question whenever it changes, or when the reading level
+  // changes (the fatigue-adaptation flow rewrites the question to an easier
+  // tier mid-session, and each tier has its own recording).
+  useEffect(() => { setAudioPhase('question'); }, [q.id, tier]);
+
+  const audioSrc = audioPhase === 'question'
+    ? `audio/${q.id}-${activeVoiceId}-${tier}.mp3`
+    : audioPhase === 'answerKey'
+    ? `audio/answer-key-${activeVoiceId}.mp3`
+    : `audio/answer-${audioPhase.slice(5)}-${activeVoiceId}.mp3`;
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.load();
+    const isPick = audioPhase.startsWith('pick:');
+    if (isPick ? soundOn : (speaking && soundOn)) audio.play().catch(() => {});
+  }, [audioSrc]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (speaking && soundOn) {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, [speaking, soundOn]);
+
+  const handleAudioEnded = () => {
+    if (audioPhase === 'question') {
+      setAudioPhase('answerKey');
+    } else {
+      // 'answerKey' finished, or a 'pick:<key>' preview finished — either
+      // way nothing plays next, so mark speaking off (updates the
+      // Reading-aloud/Tap-to-replay label to match reality).
+      actions.audioEnded();
+    }
+  };
+
+  const pickAnswer = (key) => {
+    setAudioPhase('pick:' + key);
+    actions.selectAnswer(key);
+  };
+
+  // Replay always means "read the question again" — without this, it would
+  // resume whatever was last playing (e.g. a previously tapped answer).
+  const replayQuestion = () => {
+    if (!speaking) setAudioPhase('question');
+    actions.toggleSpeak();
+  };
+
+  // The very first "speaking" auto-starts on page load, before any user
+  // gesture, so browsers silently block that initial play() call. Retry
+  // once the participant dismisses the headphone prompt (their first click).
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || showHeadphonePrompt) return;
+    if (speaking && soundOn) audio.play().catch(() => {});
+  }, [showHeadphonePrompt]);
 
   const bg = dark ? '#0d0c0a' : 'var(--neutral-50)';
   const fg = dark ? 'rgba(255,255,255,0.92)' : 'var(--text-primary)';
@@ -218,6 +299,8 @@ function ParticipantView({ dark, state, actions }) {
         </div>
       </div>
 
+      <audio ref={audioRef} src={audioSrc} onEnded={handleAudioEnded} onError={handleAudioEnded} style={{ display: 'none' }} />
+
       {/* Main stage */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
@@ -236,7 +319,7 @@ function ParticipantView({ dark, state, actions }) {
           marginBottom: 28,
         }}>
           <button
-            onClick={actions.toggleSpeak}
+            onClick={replayQuestion}
             disabled={!soundOn}
             style={{
               display: 'flex', alignItems: 'center', gap: 14,
@@ -309,13 +392,32 @@ function ParticipantView({ dark, state, actions }) {
 
         {/* Likert row */}
         <LikertRow
+          options={scaleOptions}
           selected={selected}
-          onPick={actions.answer}
+          onPick={pickAnswer}
           answers={answers}
           dark={dark}
           tier={tier}
           fast={fatigueActive}
         />
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+          <button
+            onClick={actions.advanceQuestion}
+            disabled={!selected}
+            style={{
+              font: 'inherit', fontSize: 15, fontWeight: 600,
+              padding: '13px 28px', borderRadius: 999,
+              background: selected ? (dark ? 'var(--cyan-500)' : 'var(--cyan-700)') : (dark ? 'rgba(255,255,255,0.06)' : 'var(--neutral-200)'),
+              border: 0,
+              color: selected ? '#fff' : mutedFg,
+              cursor: selected ? 'pointer' : 'not-allowed',
+              transition: 'background 0.2s',
+            }}
+          >
+            Next
+          </button>
+        </div>
 
         {/* Footer hint */}
         <div style={{
@@ -478,8 +580,9 @@ function TransitionOverlay({ dark, handoff, onAck }) {
         fontSize: 18, color: muted, lineHeight: 1.5,
         maxWidth: '42ch', marginBottom: 40,
       }}>
-        A dental hygienist will check your teeth. It takes about fifteen minutes.
-        Your answers so far are saved. We'll pick up the survey when you come back.
+        A dental hygienist will check your teeth and collect a saliva sample.
+        It takes about forty-five minutes. Your answers so far are saved.
+        We'll pick up the survey when you come back.
       </div>
 
       {/* Destination card */}
