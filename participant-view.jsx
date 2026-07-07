@@ -1,7 +1,7 @@
 // Participant tablet — active survey screen
 // Depends on: React, survey-data.js (FG_QUESTIONS, FG_LIKERT, FG_VOICES)
 
-const { useRef, useEffect } = React;
+const { useRef, useState, useEffect } = React;
 
 function Waveform({ active, dark }) {
   // 18 bars, animated with staggered delays. Pauses when not active.
@@ -122,16 +122,23 @@ function ParticipantView({ dark, state, actions }) {
   const fatigueActive = fatigueScore > 0.6;
 
   // Real voice audio, when a recording exists for this question + persona.
-  // Falls back to silent (waveform-only) playback if the file is missing.
+  // Reads the question, then the answer options, then stops.
+  // Falls back to silent (waveform-only) playback if a file is missing.
   const audioRef = useRef(null);
-  const audioSrc = `audio/${q.id}-${voiceId}.mp3`;
+  const [audioPhase, setAudioPhase] = useState('question'); // 'question' | 'answerKey'
+
+  useEffect(() => { setAudioPhase('question'); }, [q.id]);
+
+  const audioSrc = audioPhase === 'question'
+    ? `audio/${q.id}-${voiceId}.mp3`
+    : `audio/answer-key-${voiceId}.mp3`;
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     audio.load();
     if (speaking && soundOn) audio.play().catch(() => {});
-  }, [q.id, voiceId]);
+  }, [audioSrc]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -143,6 +150,23 @@ function ParticipantView({ dark, state, actions }) {
       audio.pause();
     }
   }, [speaking, soundOn]);
+
+  const handleAudioEnded = () => {
+    if (audioPhase === 'question') {
+      setAudioPhase('answerKey');
+    } else {
+      actions.audioEnded();
+    }
+  };
+
+  // The very first "speaking" auto-starts on page load, before any user
+  // gesture, so browsers silently block that initial play() call. Retry
+  // once the participant dismisses the headphone prompt (their first click).
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || showHeadphonePrompt) return;
+    if (speaking && soundOn) audio.play().catch(() => {});
+  }, [showHeadphonePrompt]);
 
   const bg = dark ? '#0d0c0a' : 'var(--neutral-50)';
   const fg = dark ? 'rgba(255,255,255,0.92)' : 'var(--text-primary)';
@@ -243,7 +267,7 @@ function ParticipantView({ dark, state, actions }) {
         </div>
       </div>
 
-      <audio ref={audioRef} src={audioSrc} onEnded={actions.audioEnded} style={{ display: 'none' }} />
+      <audio ref={audioRef} src={audioSrc} onEnded={handleAudioEnded} style={{ display: 'none' }} />
 
       {/* Main stage */}
       <div style={{
