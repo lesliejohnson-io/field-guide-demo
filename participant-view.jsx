@@ -25,14 +25,20 @@ function Waveform({ active, dark }) {
   );
 }
 
-function LikertRow({ selected, onPick, answers, dark, tier, fast }) {
+function LikertRow({ options, selected, onPick, answers, dark, tier, fast }) {
   // tier controls size/spacing. "simple" → bigger buttons.
   const padY = tier === 'simple' ? 28 : tier === 'easy' ? 24 : 22;
+  const half = (options.length - 1) / 2;
+  const markerFor = (i) => {
+    if (i === 0) return '— —';
+    if (i === options.length - 1) return '+ +';
+    if (i === half) return '·';
+    return i < half ? '—' : '+';
+  };
   return (
     <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-      {FG_LIKERT.map((opt, i) => {
+      {options.map((opt, i) => {
         const isSel = selected === opt.key;
-        const emphasis = i === 0 || i === FG_LIKERT.length - 1;
         return (
           <button
             key={opt.key}
@@ -67,7 +73,7 @@ function LikertRow({ selected, onPick, answers, dark, tier, fast }) {
                 : (dark ? 'rgba(255,255,255,0.4)' : 'var(--text-muted)'),
               fontWeight: 600, marginBottom: 8,
             }}>
-              {emphasis ? (i === 0 ? '— —' : '+ +') : (i === 2 ? '·' : (i < 2 ? '—' : '+'))}
+              {markerFor(i)}
             </div>
             {opt.label}
           </button>
@@ -118,7 +124,11 @@ function ParticipantView({ dark, state, actions }) {
   const isSpeaking = speaking && soundOn;
 
   const q = FG_QUESTIONS[questionIndex];
-  const voice = FG_VOICES.find(v => v.id === voiceId);
+  const scaleOptions = q.type === 'freq4' ? FG_FREQUENCY : FG_LIKERT;
+  // Some questions (e.g. a teen participant's item) always play in a specific
+  // persona, regardless of the session's chosen adult voice.
+  const activeVoiceId = q.voiceOverride || voiceId;
+  const voice = FG_VOICES.find(v => v.id === activeVoiceId);
   const selected = answers[q.id];
   const fatigueActive = fatigueScore > 0.6;
 
@@ -133,10 +143,10 @@ function ParticipantView({ dark, state, actions }) {
   useEffect(() => { setAudioPhase('question'); }, [q.id]);
 
   const audioSrc = audioPhase === 'question'
-    ? `audio/${q.id}-${voiceId}.mp3`
+    ? `audio/${q.id}-${activeVoiceId}.mp3`
     : audioPhase === 'answerKey'
-    ? `audio/answer-key-${voiceId}.mp3`
-    : `audio/answer-${audioPhase.slice(5)}-${voiceId}.mp3`;
+    ? `audio/answer-key-${activeVoiceId}.mp3`
+    : `audio/answer-${audioPhase.slice(5)}-${activeVoiceId}.mp3`;
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -283,7 +293,7 @@ function ParticipantView({ dark, state, actions }) {
         </div>
       </div>
 
-      <audio ref={audioRef} src={audioSrc} onEnded={handleAudioEnded} style={{ display: 'none' }} />
+      <audio ref={audioRef} src={audioSrc} onEnded={handleAudioEnded} onError={handleAudioEnded} style={{ display: 'none' }} />
 
       {/* Main stage */}
       <div style={{
@@ -376,6 +386,7 @@ function ParticipantView({ dark, state, actions }) {
 
         {/* Likert row */}
         <LikertRow
+          options={scaleOptions}
           selected={selected}
           onPick={pickAnswer}
           answers={answers}

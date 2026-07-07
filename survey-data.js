@@ -38,10 +38,19 @@ window.FG_QUESTIONS = [
     },
     type: 'likert5',
   },
+  {
+    id: 'q_01', number: 1, section: 'Self-perception', voiceOverride: 'dalton',
+    tiers: {
+      standard: "I'm more likely to follow others than decide for myself what I want to do.",
+      easy:     "I'm more likely to follow others than decide for myself what I want to do.",
+      simple:   "I'm more likely to follow others than decide for myself what I want to do.",
+    },
+    type: 'freq4',
+  },
 ];
 
 // Questions with real recorded audio + a manual "tap each answer, then Next" flow.
-window.FG_AUDIO_QUESTIONS = ['q034'];
+window.FG_AUDIO_QUESTIONS = ['q034', 'q_01'];
 
 window.FG_LIKERT = [
   { key: 'sd', label: 'Strongly disagree' },
@@ -51,9 +60,17 @@ window.FG_LIKERT = [
   { key: 'sa', label: 'Strongly agree' },
 ];
 
+window.FG_FREQUENCY = [
+  { key: 'never',   label: 'Never' },
+  { key: 'rarely',  label: 'Rarely' },
+  { key: 'mostly',  label: 'Mostly' },
+  { key: 'always',  label: 'Always' },
+];
+
 window.FG_VOICES = [
   { id: 'ellis',   name: 'Ellis',   accent: 'Eastern Kentucky', tone: 'warm · measured',     age: '60s', active: true  },
   { id: 'opal',    name: 'Opal',    accent: 'Western N.C.',     tone: 'gentle · unhurried',  age: '70s', active: false },
   { id: 'wade',    name: 'Wade',    accent: 'Southern W. Va.',  tone: 'steady · direct',     age: '50s', active: false },
   { id: 'harriet', name: 'Harriet', accent: 'Tri-Cities TN',    tone: 'bright · conversational', age: '40s', active: false },
+  { id: 'dalton',  name: 'Dalton',  accent: 'Eastern Kentucky', tone: 'easygoing · teen',    age: 'teen', active: false },
 ];
