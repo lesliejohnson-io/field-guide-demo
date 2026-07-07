@@ -113,6 +113,7 @@ function ParticipantView({ dark, state, actions }) {
     questionIndex, answers, voiceId, speaking, tier,
     adaptiveToast, showBreak, showHeadphonePrompt,
     progress, fatigueScore, totalQuestions, soundOn = true,
+    manualAdvance,
   } = state;
   const isSpeaking = speaking && soundOn;
 
@@ -122,22 +123,27 @@ function ParticipantView({ dark, state, actions }) {
   const fatigueActive = fatigueScore > 0.6;
 
   // Real voice audio, when a recording exists for this question + persona.
-  // Reads the question, then the answer options, then stops.
-  // Falls back to silent (waveform-only) playback if a file is missing.
+  // Reads the question, then the answer options, then stops. Tapping an
+  // answer (in manualAdvance mode) interrupts playback to preview that
+  // option instead. Falls back to silent (waveform-only) playback when a
+  // file is missing.
   const audioRef = useRef(null);
-  const [audioPhase, setAudioPhase] = useState('question'); // 'question' | 'answerKey'
+  const [audioPhase, setAudioPhase] = useState('question'); // 'question' | 'answerKey' | 'pick:<key>'
 
   useEffect(() => { setAudioPhase('question'); }, [q.id]);
 
   const audioSrc = audioPhase === 'question'
     ? `audio/${q.id}-${voiceId}.mp3`
-    : `audio/answer-key-${voiceId}.mp3`;
+    : audioPhase === 'answerKey'
+    ? `audio/answer-key-${voiceId}.mp3`
+    : `audio/answer-${audioPhase.slice(5)}-${voiceId}.mp3`;
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     audio.load();
-    if (speaking && soundOn) audio.play().catch(() => {});
+    const isPick = audioPhase.startsWith('pick:');
+    if (isPick ? soundOn : (speaking && soundOn)) audio.play().catch(() => {});
   }, [audioSrc]);
 
   useEffect(() => {
@@ -154,8 +160,18 @@ function ParticipantView({ dark, state, actions }) {
   const handleAudioEnded = () => {
     if (audioPhase === 'question') {
       setAudioPhase('answerKey');
-    } else {
+    } else if (audioPhase === 'answerKey') {
       actions.audioEnded();
+    }
+    // 'pick:<key>' — just a one-shot preview, nothing to chain into.
+  };
+
+  const pickAnswer = (key) => {
+    if (manualAdvance) {
+      setAudioPhase('pick:' + key);
+      actions.selectAnswer(key);
+    } else {
+      actions.answer(key);
     }
   };
 
@@ -361,12 +377,32 @@ function ParticipantView({ dark, state, actions }) {
         {/* Likert row */}
         <LikertRow
           selected={selected}
-          onPick={actions.answer}
+          onPick={pickAnswer}
           answers={answers}
           dark={dark}
           tier={tier}
           fast={fatigueActive}
         />
+
+        {manualAdvance && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+            <button
+              onClick={actions.advanceQuestion}
+              disabled={!selected}
+              style={{
+                font: 'inherit', fontSize: 15, fontWeight: 600,
+                padding: '13px 28px', borderRadius: 999,
+                background: selected ? (dark ? 'var(--cyan-500)' : 'var(--cyan-700)') : (dark ? 'rgba(255,255,255,0.06)' : 'var(--neutral-200)'),
+                border: 0,
+                color: selected ? '#fff' : mutedFg,
+                cursor: selected ? 'pointer' : 'not-allowed',
+                transition: 'background 0.2s',
+              }}
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         {/* Footer hint */}
         <div style={{

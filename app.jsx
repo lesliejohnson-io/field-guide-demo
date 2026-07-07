@@ -156,6 +156,25 @@ function App() {
     }, 600);
   }, [questionIndex, addLog]);
 
+  // Audio-enabled questions: tapping an option previews it aloud and just
+  // selects it — advancing is a deliberate "Next" tap instead of a timer.
+  const selectAnswer = useCallback((key) => {
+    const q = FG_QUESTIONS[questionIndex];
+    setAnswers(prev => ({ ...prev, [q.id]: key }));
+  }, [questionIndex]);
+
+  const advanceQuestion = useCallback(() => {
+    const q = FG_QUESTIONS[questionIndex];
+    const key = answers[q.id];
+    if (key) {
+      const label = FG_LIKERT.find(l => l.key === key).label;
+      setAnswerTimestamps(prev => [...prev, Date.now()]);
+      addLog({ kind: 'answer', text: `Q${q.number} answered · ${label}` });
+    }
+    setQuestionIndex(i => Math.min(i + 1, FG_QUESTIONS.length - 1));
+    setSpeaking(true);
+  }, [questionIndex, answers, addLog]);
+
   const toggleSpeak = useCallback(() => setSpeaking(s => !s), []);
   const audioEnded = useCallback(() => setSpeaking(false), []);
   const toggleSound = useCallback(() => {
@@ -216,15 +235,18 @@ function App() {
   const sessionMin = Math.floor((Date.now() - sessionStart) / 60000);
   const progress = Math.min(1, (30 + questionIndex + Object.keys(answers).length) / totalQuestions);
 
+  const currentQuestion = FG_QUESTIONS[Math.min(questionIndex, FG_QUESTIONS.length - 1)];
   const participantState = {
     questionIndex: Math.min(questionIndex, FG_QUESTIONS.length - 1),
     answers, voiceId, speaking, tier,
     adaptiveToast, showBreak, showHeadphonePrompt,
     progress, fatigueScore, totalQuestions, soundOn,
     transition, restMode, participantName: PARTICIPANT_NAME,
+    manualAdvance: FG_AUDIO_QUESTIONS.includes(currentQuestion.id),
   };
   const actions = {
-    answer, toggleSpeak, toggleSound, takeBreak, resumeFromBreak,
+    answer, selectAnswer, advanceQuestion,
+    toggleSpeak, toggleSound, takeBreak, resumeFromBreak,
     dismissHeadphonePrompt, dismissToast, audioEnded,
     ackTransition, wakeFromRest,
   };
